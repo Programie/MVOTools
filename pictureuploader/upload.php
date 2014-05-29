@@ -26,6 +26,7 @@ $queueProcessor = new QueueProcessor();
 $queueProcessor->setSshServer($sshServer);
 $queueProcessor->setAlbumsPath(__DIR__ . "/albums");
 $queueProcessor->setQueuePath(__DIR__ . "/queue");
+$queueProcessor->setPicturesSourcePath(PICTURES_SOURCE);
 $queueProcessor->setRemoteWebsiteRoot(REMOTE_WEBSITE_ROOT);
 $queueProcessor->setRsyncLogFile(RSYNC_LOG_FILE);
 

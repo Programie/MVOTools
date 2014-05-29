@@ -1,15 +1,19 @@
 <?php
+require_once __DIR__ . "/ImageResizer.class.php";
+
 class QueueItem
 {
 	private $queueData;
+	private $picturesSourcePath;
 	private $albumsPath;
 	private $remoteWebsiteRoot;
 	private $rsyncLogFile;
 	private $sshServer;
 
-	public function __construct($queueFile, $albumsPath, $remoteWebsiteRoot, $rsyncLogFile, SshServer $sshServer)
+	public function __construct($queueFile, $picturesSourcePath, $albumsPath, $remoteWebsiteRoot, $rsyncLogFile, SshServer $sshServer)
 	{
 		$this->queueFile = $queueFile;
+		$this->picturesSourcePath = $picturesSourcePath;
 		$this->albumsPath = $albumsPath;
 		$this->remoteWebsiteRoot = $remoteWebsiteRoot;
 		$this->rsyncLogFile = $rsyncLogFile;
@@ -33,26 +37,109 @@ class QueueItem
 
 	public function run()
 	{
-		$this->setStatus("processing");
+		$this->setStatus("preparing");
 
 		$folderName = $this->queueData->folder;
 		$year = $this->queueData->year;
 
+		$sourcePath = $this->picturesSourcePath . "/" . $year . "/" . $folderName;
 		$albumPath = $this->albumsPath . "/" . $year . "/" . $folderName;
 
-		$albumInfoFile = $albumPath . "/album.xml";
-
-		if (!file_exists($albumInfoFile))
+		if (!is_dir($albumPath))
 		{
-			$this->setStatus("error", "No album.xml found!");
-			return false;
+			mkdir($albumPath, 0777, true);
 		}
 
-		$document = new DOMDocument();
-		$document->load($albumInfoFile);
-		$root = $document->getElementsByTagName("album")->item(0);
+		$albumId = null;
 
-		$albumId = $root->getAttribute("id");
+		$albumInfoFile = $albumPath . "/album.xml";
+		if (file_exists($albumInfoFile))
+		{
+			$albumInfoDocument = new DOMDocument();
+			$albumInfoDocument->load($albumInfoFile);
+			$rootNode = $albumInfoDocument->getElementsByTagName("album")->item(0);
+
+			$albumId = $rootNode->getAttribute("id");
+
+			$albumInfoDocument = null;
+		}
+
+		// Build the album.xml
+		$albumInfoDocument = new DOMDocument();
+		$rootNode = $albumInfoDocument->createElement("album");
+		$albumInfoDocument->appendChild($rootNode);
+
+		$yearNode = $albumInfoDocument->createElement("year");
+		$yearNode->nodeValue = $year;
+		$rootNode->appendChild($yearNode);
+
+		$folderNameNode = $albumInfoDocument->createElement("foldername");
+		$folderNameNode->nodeValue = $folderName;
+		$rootNode->appendChild($folderNameNode);
+
+		$picturesNode = $albumInfoDocument->createElement("pictures");
+		$rootNode->appendChild($picturesNode);
+
+		$validFiles = array();
+		$imageNumber = 1;
+
+		$this->setStatus("resizingImages");
+
+		// Resize all images
+		$dir = scandir($sourcePath);
+		sort($dir, SORT_NATURAL);
+		foreach ($dir as $file)
+		{
+			if ($file[0] != "." and is_file($sourcePath . "/" . $file) and strtolower(pathinfo($file, PATHINFO_EXTENSION)) == "jpg")
+			{
+				$name = md5_file($sourcePath . "/" . $file);
+
+				$largeFile = $albumPath . "/large_" . $name . ".jpg";
+				$smallFile = $albumPath . "/small_" . $name . ".jpg";
+
+				if (!file_exists($largeFile) and !file_exists($smallFile))
+				{
+					$resizer = new ImageResizer(imagecreatefromjpeg($sourcePath . "/" . $file));
+
+					if (!file_exists($largeFile))
+					{
+						imagejpeg($resizer->resize(1500, 1000), $largeFile);
+					}
+
+					if (!file_exists($smallFile))
+					{
+						imagejpeg($resizer->resize(600, 200), $smallFile);
+					}
+
+					$resizer = null;
+				}
+
+				// Add the picture to the album.xml
+				$pictureNode = $albumInfoDocument->createElement("picture");
+				$pictureNode->setAttribute("name", $name);
+				$pictureNode->setAttribute("number", $imageNumber);
+				$picturesNode->appendChild($pictureNode);
+
+				$validFiles[] = $largeFile;
+				$validFiles[] = $smallFile;
+
+				$imageNumber++;
+			}
+		}
+
+		$this->setStatus("cleanup");
+
+		// Remove old files (e.g. deleted from source folder)
+		$dir = scandir($albumPath);
+		foreach ($dir as $file)
+		{
+			if (!in_array($file, $validFiles))
+			{
+				unlink($albumPath . "/" . $file);
+			}
+		}
+
+		$this->setStatus("uploading");
 
 		if ($albumId)
 		{
@@ -60,8 +147,6 @@ class QueueItem
 		}
 		else
 		{
-			$year = $root->getElementsByTagName("year")->item(0)->noideValue;
-			$folderName = $root->getElementsByTagName("foldername")->item(0)->nodeValue;
 			$albumFolderName = "tmp_" . md5($year . "/" . $folderName);// Create an unique temporary folder name
 		}
 
@@ -88,6 +173,8 @@ class QueueItem
 			return false;
 		}
 
+		$this->setStatus("updatingDatabase");
+
 		$sshConnection = ssh2_connect($this->sshServer->server);
 		if (!ssh2_auth_pubkey_file($sshConnection, $this->sshServer->username, $this->sshServer->publicKeyFile, $this->sshServer->privateKeyFile))
 		{
@@ -107,8 +194,12 @@ class QueueItem
 			return false;
 		}
 
-		$root->setAttribute("id", $albumId);// Set the new album ID
-		$document->save($albumInfoFile);
+		$this->setStatus("writingAlbumInfo");
+
+		$rootNode->setAttribute("id", $albumId);// Set the new album ID
+		$albumInfoDocument->save($albumInfoFile);
+
+		$albumInfoDocument = null;
 
 		return true;
 	}
