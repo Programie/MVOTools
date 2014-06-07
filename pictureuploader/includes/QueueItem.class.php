@@ -27,10 +27,13 @@ class QueueItem
 		file_put_contents($this->queueFile, json_encode($this->queueData));
 	}
 
-	private function setStatus($status, $message = null)
+	private function setStatus($status, $data = null)
 	{
-		$this->queueData->status = $status;
-		$this->queueData->message = $message;
+		$statusObject = new StdClass;
+		$statusObject->status = $status;
+		$statusObject->data = $data;
+
+		$this->queueData->status = $statusObject;
 
 		$this->saveQueueFile();
 	}
@@ -94,21 +97,24 @@ class QueueItem
 			{
 				$name = md5_file($sourcePath . "/" . $file);
 
-				$largeFile = $albumPath . "/large_" . $name . ".jpg";
-				$smallFile = $albumPath . "/small_" . $name . ".jpg";
+				$largeFile = "large_" . $name . ".jpg";
+				$smallFile = "small_" . $name . ".jpg";
 
-				if (!file_exists($largeFile) and !file_exists($smallFile))
+				$largeFilePath = $albumPath . "/" . $largeFile;
+				$smallFilePath = $albumPath . "/" . $smallFile;
+
+				if (!file_exists($largeFilePath) or !file_exists($smallFilePath))
 				{
 					$resizer = new ImageResizer(imagecreatefromjpeg($sourcePath . "/" . $file));
 
-					if (!file_exists($largeFile))
+					if (!file_exists($largeFilePath))
 					{
-						imagejpeg($resizer->resize(1500, 1000), $largeFile);
+						imagejpeg($resizer->resize(1500, 1000), $largeFilePath);
 					}
 
-					if (!file_exists($smallFile))
+					if (!file_exists($smallFilePath))
 					{
-						imagejpeg($resizer->resize(600, 200), $smallFile);
+						imagejpeg($resizer->resize(600, 200), $smallFilePath);
 					}
 
 					$resizer = null;
@@ -123,6 +129,8 @@ class QueueItem
 				$validFiles[] = $largeFile;
 				$validFiles[] = $smallFile;
 
+				$this->setStatus("resizingImages", $imageNumber);
+
 				$imageNumber++;
 			}
 		}
@@ -133,13 +141,13 @@ class QueueItem
 		$dir = scandir($albumPath);
 		foreach ($dir as $file)
 		{
-			if (!in_array($file, $validFiles))
+			if ($file[0] != "." and !in_array($file, $validFiles))
 			{
 				unlink($albumPath . "/" . $file);
 			}
 		}
 
-		$this->setStatus("uploading");
+		$this->setStatus("syncing");
 
 		if ($albumId)
 		{
@@ -152,24 +160,48 @@ class QueueItem
 
 		$remotePath = $this->remoteWebsiteRoot . "/files/pictures/" . $albumFolderName;
 
-		$output = array();
+		$returnCode = -1;
 
 		$rsyncCommand = array
 		(
 			"rsync",
-			"-rz",
+			"--compress",
+			"--recursive",
 			"--delete",
+			"--progress",
 			"--log-file=" . $this->rsyncLogFile,
 			"--rsync-path=\"sudo mkdir -p " . $remotePath . " && sudo rsync\"",
 			"-e \"ssh -i " . $this->sshServer->privateKeyFile . "\"",
 			"\"" . $albumPath . "\"",
 			$this->sshServer->username . "@" . $this->sshServer->server . ":" . $remotePath . "/"
 		);
-		exec($rsyncCommand, $output, $returnCode);
+		$rsyncProcess = popen(implode(" ", $rsyncCommand), "r");
+		if ($rsyncProcess)
+		{
+			while (!feof($rsyncProcess))
+			{
+				$line = fgets($rsyncProcess);
+
+				// Parse the following line:
+				// 57699 100%   63.03kB/s    0:00:00 (xfer#747, to-check=1203/2213)
+				if (preg_match("/([0-9]+)%\s+([0-9\.]+)kB\/s\s+[0-9:]+\s+\(xfer#([0-9]+),\s+to-check=([0-9]+)\/([0-9]+)\)/", $line, $matches))
+				{
+					$rsyncData = new StdClass;
+					$rsyncData->percent = $matches[1];
+					$rsyncData->speed = $matches[2];
+					$rsyncData->transfer = $matches[3];
+					$rsyncData->toCheck = $matches[4];
+					$rsyncData->totalCheck = $matches[5];
+					$this->setStatus("syncing", $rsyncData);
+				}
+			}
+
+			$returnCode = pclose($rsyncProcess);
+		}
 
 		if ($returnCode)
 		{
-			$this->setStatus("error", "rsync error:\n" . implode("\n", $output));
+			$this->setStatus("error", "rsync error");
 			return false;
 		}
 
