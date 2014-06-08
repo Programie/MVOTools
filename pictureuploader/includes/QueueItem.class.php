@@ -76,6 +76,7 @@ class QueueItem
 
 		// Build the album.json
 		$albumInfoData = new StdClass;
+		$albumInfoData->id = $albumId;
 		$albumInfoData->year = $year;
 		$albumInfoData->folderName = $folderName;
 
