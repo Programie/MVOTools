@@ -92,7 +92,7 @@ class QueueItem
 		$picturesNode = $albumInfoDocument->createElement("pictures");
 		$rootNode->appendChild($picturesNode);
 
-		$validFiles = array();
+		$validFiles = array("album.xml");
 		$imageNumber = 1;
 
 		// Resize all images
@@ -141,6 +141,8 @@ class QueueItem
 				$imageNumber++;
 			}
 		}
+
+		$albumInfoDocument->save($albumInfoFile);
 
 		$this->setStatus(QueueItem::STATUS_CLEANUP);
 
@@ -234,6 +236,7 @@ class QueueItem
 		$this->setStatus(QueueItem::STATUS_WRITING_ALBUM_INFO);
 
 		$rootNode->setAttribute("id", $albumId);// Set the new album ID
+
 		$albumInfoDocument->save($albumInfoFile);
 
 		$albumInfoDocument = null;
