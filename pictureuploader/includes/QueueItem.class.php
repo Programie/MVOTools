@@ -95,8 +95,6 @@ class QueueItem
 		$validFiles = array();
 		$imageNumber = 1;
 
-		$this->setStatus(QueueItem::STATUS_RESIZING_IMAGES);
-
 		// Resize all images
 		$dir = scandir($sourcePath);
 		sort($dir, SORT_NATURAL);
@@ -138,7 +136,7 @@ class QueueItem
 				$validFiles[] = $largeFile;
 				$validFiles[] = $smallFile;
 
-				$this->setStatus("resizingImages", $imageNumber);
+				$this->setStatus(QueueItem::STATUS_RESIZING_IMAGES, $imageNumber);
 
 				$imageNumber++;
 			}
