@@ -58,8 +58,6 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 			{
 				$path .= basename($_GET["folder"]);
 
-				echo "<a href='?year=" . $_GET["year"] . "'>Zur&uuml;ck</a>";
-
 				$queueFile = __DIR__ . "/../queue/" . md5($path . "/" . time());
 
 				$statusData = new StdClass;
@@ -73,7 +71,10 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 				file_put_contents($queueFile, json_encode($queueData));
 
 				?>
-				<p>Das Album wurde erfolgreich in die Warteschlage aufgenommen und wird nun bearbeitet.</p>
+				<script type="text/javascript">
+					alert("Das Album wurde erfolgreich in die Warteschlage aufgenommen und wird nun bearbeitet.");
+					document.location = "?year=<?php echo $_GET["year"];?>";
+				</script>
 				<?php
 			}
 			else
@@ -176,7 +177,6 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 							default:
 								$status = $statusData->status;
 						}
-
 
 						echo "
 							<tr>
