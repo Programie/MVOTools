@@ -3,6 +3,7 @@ require_once __DIR__ . "/ImageResizer.class.php";
 
 class QueueItem
 {
+	const STATUS_NEW = "new";
 	const STATUS_PREPARING = "preparing";
 	const STATUS_RESIZING_IMAGES = "resizingImages";
 	const STATUS_CLEANUP = "cleanup";
@@ -178,7 +179,7 @@ class QueueItem
 			"--log-file=" . $this->rsyncLogFile,
 			"--rsync-path=\"sudo mkdir -p " . $remotePath . " && sudo rsync\"",
 			"-e \"ssh -i " . $this->sshServer->privateKeyFile . "\"",
-			"\"" . $albumPath . "\"",
+			"\"" . $albumPath . "/\"",
 			$this->sshServer->username . "@" . $this->sshServer->server . ":" . $remotePath . "/"
 		);
 		$rsyncProcess = popen(implode(" ", $rsyncCommand), "r");
