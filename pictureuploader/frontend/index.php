@@ -62,8 +62,11 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 
 				$queueFile = __DIR__ . "/../queue/" . md5($path . "/" . time());
 
+				$statusData = new StdClass;
+				$statusData->status = QueueItem::STATUS_NEW;
+
 				$queueData = new StdClass;
-				$queueData->status = "new";
+				$queueData->status = $statusData;
 				$queueData->year = $_GET["year"];
 				$queueData->folder = $_GET["folder"];
 
@@ -145,6 +148,9 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 
 						switch ($statusData->status)
 						{
+							case QueueItem::STATUS_NEW:
+								$status = "Neu";
+								break;
 							case QueueItem::STATUS_ERROR:
 								$status = "Fehler";
 								break;
