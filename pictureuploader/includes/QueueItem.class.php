@@ -64,37 +64,24 @@ class QueueItem
 
 		$albumId = null;
 
-		$albumInfoFile = $albumPath . "/album.xml";
+		$albumInfoFile = $albumPath . "/album.json";
 		if (file_exists($albumInfoFile))
 		{
-			$albumInfoDocument = new DOMDocument();
-			$albumInfoDocument->load($albumInfoFile);
-			$rootNode = $albumInfoDocument->getElementsByTagName("album")->item(0);
+			$albumInfoData = json_decode(file_get_contents($albumInfoFile));
 
-			$albumId = $rootNode->getAttribute("id");
+			$albumId = $albumInfoData->id;
 
 			$albumInfoDocument = null;
 		}
 
-		// Build the album.xml
-		$albumInfoDocument = new DOMDocument();
-		$albumInfoDocument->formatOutput = true;
+		// Build the album.json
+		$albumInfoData = new StdClass;
+		$albumInfoData->year = $year;
+		$albumInfoData->folderName = $folderName;
 
-		$rootNode = $albumInfoDocument->createElement("album");
-		$albumInfoDocument->appendChild($rootNode);
+		$picturesInfoData = array();
 
-		$yearNode = $albumInfoDocument->createElement("year");
-		$yearNode->nodeValue = $year;
-		$rootNode->appendChild($yearNode);
-
-		$folderNameNode = $albumInfoDocument->createElement("foldername");
-		$folderNameNode->nodeValue = $folderName;
-		$rootNode->appendChild($folderNameNode);
-
-		$picturesNode = $albumInfoDocument->createElement("pictures");
-		$rootNode->appendChild($picturesNode);
-
-		$validFiles = array("album.xml");
+		$validFiles = array("album.json");
 		$imageNumber = 1;
 
 		// Resize all images
@@ -129,11 +116,11 @@ class QueueItem
 					$resizer = null;
 				}
 
-				// Add the picture to the album.xml
-				$pictureNode = $albumInfoDocument->createElement("picture");
-				$pictureNode->setAttribute("name", $name);
-				$pictureNode->setAttribute("number", $imageNumber);
-				$picturesNode->appendChild($pictureNode);
+				// Add the picture to the album info data
+				$pictureInfoData = new StdClass;
+				$pictureInfoData->name = $name;
+				$pictureInfoData->number = $imageNumber;
+				$picturesInfoData[] = $pictureInfoData;
 
 				$validFiles[] = $largeFile;
 				$validFiles[] = $smallFile;
@@ -144,7 +131,9 @@ class QueueItem
 			}
 		}
 
-		$albumInfoDocument->save($albumInfoFile);
+		$albumInfoData->pictures = $picturesInfoData;
+
+		file_put_contents($albumInfoFile, json_encode($albumInfoData, JSON_PRETTY_PRINT));
 
 		$this->setStatus(QueueItem::STATUS_CLEANUP);
 
@@ -240,11 +229,9 @@ class QueueItem
 
 		$this->setStatus(QueueItem::STATUS_WRITING_ALBUM_INFO);
 
-		$rootNode->setAttribute("id", $albumId);// Set the new album ID
+		$albumInfoData->id = $albumId;
 
-		$albumInfoDocument->save($albumInfoFile);
-
-		$albumInfoDocument = null;
+		file_put_contents($albumInfoFile, json_encode($albumInfoData, JSON_PRETTY_PRINT));
 
 		return true;
 	}
