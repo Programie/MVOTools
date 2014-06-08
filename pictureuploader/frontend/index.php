@@ -163,6 +163,7 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 								break;
 							case QueueItem::STATUS_RESIZING_IMAGES:
 								$status = "Bilder verkleinern";
+								$statusDetails = $statusDetails->current . " / " . $statusDetails->total;
 								break;
 							case QueueItem::STATUS_UPLOADING:
 								$status = "Hochladen";

@@ -74,6 +74,17 @@ class QueueItem
 			$albumInfoDocument = null;
 		}
 
+		$pictureFiles = array();
+		$dir = scandir($sourcePath);
+		sort($dir, SORT_NATURAL);
+		foreach ($dir as $file)
+		{
+			if ($file[0] != "." and is_file($sourcePath . "/" . $file) and strtolower(pathinfo($file, PATHINFO_EXTENSION)) == "jpg")
+			{
+				$pictureFiles[] = $file;
+			}
+		}
+
 		// Build the album.json
 		$albumInfoData = new StdClass;
 		$albumInfoData->id = (int) $albumId;
@@ -83,53 +94,50 @@ class QueueItem
 		$picturesInfoData = array();
 
 		$validFiles = array("album.json");
-		$imageNumber = 1;
 
 		// Resize all images
-		$dir = scandir($sourcePath);
-		sort($dir, SORT_NATURAL);
-		foreach ($dir as $file)
+		foreach ($pictureFiles as $index => $file)
 		{
-			if ($file[0] != "." and is_file($sourcePath . "/" . $file) and strtolower(pathinfo($file, PATHINFO_EXTENSION)) == "jpg")
+			$imageNumber = $index + 1;
+
+			$statusData = new StdClass;
+			$statusData->current = $imageNumber;
+			$statusData->total = count($pictureFiles);
+			$this->setStatus(QueueItem::STATUS_RESIZING_IMAGES, $statusData);
+
+			$name = md5_file($sourcePath . "/" . $file);
+
+			$largeFile = "large_" . $name . ".jpg";
+			$smallFile = "small_" . $name . ".jpg";
+
+			$largeFilePath = $albumPath . "/" . $largeFile;
+			$smallFilePath = $albumPath . "/" . $smallFile;
+
+			if (!file_exists($largeFilePath) or !file_exists($smallFilePath))
 			{
-				$this->setStatus(QueueItem::STATUS_RESIZING_IMAGES, $imageNumber);
+				$resizer = new ImageResizer(imagecreatefromjpeg($sourcePath . "/" . $file));
 
-				$name = md5_file($sourcePath . "/" . $file);
-
-				$largeFile = "large_" . $name . ".jpg";
-				$smallFile = "small_" . $name . ".jpg";
-
-				$largeFilePath = $albumPath . "/" . $largeFile;
-				$smallFilePath = $albumPath . "/" . $smallFile;
-
-				if (!file_exists($largeFilePath) or !file_exists($smallFilePath))
+				if (!file_exists($largeFilePath))
 				{
-					$resizer = new ImageResizer(imagecreatefromjpeg($sourcePath . "/" . $file));
-
-					if (!file_exists($largeFilePath))
-					{
-						imagejpeg($resizer->resize(1500, 1000), $largeFilePath);
-					}
-
-					if (!file_exists($smallFilePath))
-					{
-						imagejpeg($resizer->resize(600, 200), $smallFilePath);
-					}
-
-					$resizer = null;
+					imagejpeg($resizer->resize(1500, 1000), $largeFilePath);
 				}
 
-				// Add the picture to the album info data
-				$pictureInfoData = new StdClass;
-				$pictureInfoData->name = $name;
-				$pictureInfoData->number = $imageNumber;
-				$picturesInfoData[] = $pictureInfoData;
+				if (!file_exists($smallFilePath))
+				{
+					imagejpeg($resizer->resize(600, 200), $smallFilePath);
+				}
 
-				$validFiles[] = $largeFile;
-				$validFiles[] = $smallFile;
-
-				$imageNumber++;
+				$resizer = null;
 			}
+
+			// Add the picture to the album info data
+			$pictureInfoData = new StdClass;
+			$pictureInfoData->name = $name;
+			$pictureInfoData->number = $imageNumber;
+			$picturesInfoData[] = $pictureInfoData;
+
+			$validFiles[] = $largeFile;
+			$validFiles[] = $smallFile;
 		}
 
 		$albumInfoData->pictures = $picturesInfoData;
