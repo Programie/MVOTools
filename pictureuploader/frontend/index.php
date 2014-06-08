@@ -165,7 +165,7 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 								break;
 							case QueueItem::STATUS_UPLOADING:
 								$status = "Hochladen";
-								$statusDetails = "Noch " . $statusDetails->toCheck . " von " . $statusDetails->total;
+								$statusDetails = "Noch " . $statusDetails->toCheck . " von " . $statusDetails->totalCheck;
 								break;
 							case QueueItem::STATUS_UPDATING_DATABASE:
 								$status = "Datenbank aktualisieren";
