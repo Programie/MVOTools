@@ -3,6 +3,14 @@ require_once __DIR__ . "/ImageResizer.class.php";
 
 class QueueItem
 {
+	const STATUS_PREPARING = "preparing";
+	const STATUS_RESIZING_IMAGES = "resizingImages";
+	const STATUS_CLEANUP = "cleanup";
+	const STATUS_UPLOADING = "uploading";
+	const STATUS_UPDATING_DATABASE = "updatingDatabase";
+	const STATUS_WRITING_ALBUM_INFO = "writingAlbumInfo";
+	const STATUS_ERROR = "error";
+
 	private $queueData;
 	private $picturesSourcePath;
 	private $albumsPath;
@@ -40,7 +48,7 @@ class QueueItem
 
 	public function run()
 	{
-		$this->setStatus("preparing");
+		$this->setStatus(QueueItem::STATUS_PREPARING);
 
 		$folderName = $this->queueData->folder;
 		$year = $this->queueData->year;
@@ -86,7 +94,7 @@ class QueueItem
 		$validFiles = array();
 		$imageNumber = 1;
 
-		$this->setStatus("resizingImages");
+		$this->setStatus(QueueItem::STATUS_RESIZING_IMAGES);
 
 		// Resize all images
 		$dir = scandir($sourcePath);
@@ -135,7 +143,7 @@ class QueueItem
 			}
 		}
 
-		$this->setStatus("cleanup");
+		$this->setStatus(QueueItem::STATUS_CLEANUP);
 
 		// Remove old files (e.g. deleted from source folder)
 		$dir = scandir($albumPath);
@@ -146,8 +154,6 @@ class QueueItem
 				unlink($albumPath . "/" . $file);
 			}
 		}
-
-		$this->setStatus("syncing");
 
 		if ($albumId)
 		{
@@ -192,7 +198,7 @@ class QueueItem
 					$rsyncData->transfer = $matches[3];
 					$rsyncData->toCheck = $matches[4];
 					$rsyncData->totalCheck = $matches[5];
-					$this->setStatus("syncing", $rsyncData);
+					$this->setStatus(QueueItem::STATUS_UPLOADING, $rsyncData);
 				}
 			}
 
@@ -201,16 +207,16 @@ class QueueItem
 
 		if ($returnCode)
 		{
-			$this->setStatus("error", "rsync error");
+			$this->setStatus(QueueItem::STATUS_ERROR, "rsync error");
 			return false;
 		}
 
-		$this->setStatus("updatingDatabase");
+		$this->setStatus(QueueItem::STATUS_UPDATING_DATABASE);
 
 		$sshConnection = ssh2_connect($this->sshServer->server);
 		if (!ssh2_auth_pubkey_file($sshConnection, $this->sshServer->username, $this->sshServer->publicKeyFile, $this->sshServer->privateKeyFile))
 		{
-			$this->setStatus("error", "SSH authentication failed!");
+			$this->setStatus(QueueItem::STATUS_ERROR, "SSH authentication failed!");
 			return false;
 		}
 
@@ -222,11 +228,11 @@ class QueueItem
 
 		if (!$albumId or !is_numeric($albumId))
 		{
-			$this->setStatus("error", "Error while execution of addAlbum.php on " . $this->sshServer->server . ":\n" . $albumId);
+			$this->setStatus(QueueItem::STATUS_ERROR, "Error while execution of addAlbum.php on " . $this->sshServer->server . ":\n" . $albumId);
 			return false;
 		}
 
-		$this->setStatus("writingAlbumInfo");
+		$this->setStatus(QueueItem::STATUS_WRITING_ALBUM_INFO);
 
 		$rootNode->setAttribute("id", $albumId);// Set the new album ID
 		$albumInfoDocument->save($albumInfoFile);

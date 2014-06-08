@@ -1,11 +1,40 @@
 <?php
 require_once __DIR__ . "/../includes/config.inc.php";
+require_once __DIR__ . "/../includes/QueueItem.class.php";
 ?>
 <!DOCTYPE html>
 
 <html>
 	<head>
 		<title>MVO Picture Uploader</title>
+
+		<style type="text/css">
+			body
+			{
+				font-family: Verdana, Helvetica, sans-serif;
+			}
+
+			table
+			{
+				border-spacing: 0;
+			}
+
+			table td
+			{
+				border-top: 1px solid #ccc;
+			}
+
+			table th, table td
+			{
+				padding: 5px;
+				border-left: 1px solid #ccc;
+			}
+
+			table th:first-child, table td:first-child
+			{
+				border-left: 0;
+			}
+		</style>
 
 		<script type="text/javascript">
 			function doConfirm(year, name)
@@ -19,68 +48,153 @@ require_once __DIR__ . "/../includes/config.inc.php";
 	</head>
 
 	<body>
-	<?php
-	$doSave = false;
-	$path = PICTURES_SOURCE;
-	if (isset($_GET["year"]) and is_numeric($_GET["year"]))
-	{
-		$path .= "/" . intval($_GET["year"]);
-		if (isset($_GET["folder"]))
+		<?php
+		$doSave = false;
+		$path = PICTURES_SOURCE;
+		if (isset($_GET["year"]) and is_numeric($_GET["year"]))
 		{
-			$path .= basename($_GET["folder"]);
+			$path .= "/" . intval($_GET["year"]);
+			if (isset($_GET["folder"]))
+			{
+				$path .= basename($_GET["folder"]);
 
-			echo "<a href='?year=" . $_GET["year"] . "'>Zur&uuml;ck</a>";
+				echo "<a href='?year=" . $_GET["year"] . "'>Zur&uuml;ck</a>";
 
-			$queueFile = __DIR__ . "/../queue/" . md5($path . "/" . time());
+				$queueFile = __DIR__ . "/../queue/" . md5($path . "/" . time());
 
-			$queueData = new StdClass;
-			$queueData->status = "new";
-			$queueData->year = $_GET["year"];
-			$queueData->folder = $_GET["folder"];
+				$queueData = new StdClass;
+				$queueData->status = "new";
+				$queueData->year = $_GET["year"];
+				$queueData->folder = $_GET["folder"];
 
-			file_put_contents($queueFile, json_encode($queueData));
+				file_put_contents($queueFile, json_encode($queueData));
 
-			?>
-			<p>Das Album wurde erfolgreich in die Warteschlage aufgenommen und wird nun bearbeitet.</p>
-			<?php
+				?>
+				<p>Das Album wurde erfolgreich in die Warteschlage aufgenommen und wird nun bearbeitet.</p>
+				<?php
+			}
+			else
+			{
+				echo "<a href='?'>Zur&uuml;ck</a>";
+				?>
+				<ul>
+					<?php
+					$dir = scandir($path);
+					foreach ($dir as $item)
+					{
+						if ($item[0] != "." and is_dir($path . "/" . $item))
+						{
+							echo "<li style='cursor: pointer;' onclick=\"doConfirm(" . $_GET["year"] .", '" . $item . "');\">" . $item . "</li>";
+						}
+					}
+					?>
+				</ul>
+				<?php
+			}
 		}
 		else
 		{
-			echo "<a href='?'>Zur&uuml;ck</a>";
 			?>
 			<ul>
 				<?php
 				$dir = scandir($path);
+				sort($dir, SORT_ASC);
 				foreach ($dir as $item)
 				{
-					if ($item[0] != "." and is_dir($path . "/" . $item))
+					if ($item[0] != "." and is_dir($path . "/" . $item) and is_numeric($item))
 					{
-						echo "<li style='cursor: pointer;' onclick=\"doConfirm(" . $_GET["year"] .", '" . $item . "');\">" . $item . "</li>";
+						echo "<li><a href='?year=" . $item . "'>" . $item . "</a></li>";
 					}
 				}
 				?>
 			</ul>
 			<?php
 		}
-	}
-	else
-	{
 		?>
-		<ul>
-			<?php
-			$dir = scandir($path);
-			sort($dir, SORT_ASC);
-			foreach ($dir as $item)
-			{
-				if ($item[0] != "." and is_dir($path . "/" . $item) and is_numeric($item))
+
+		<h1>Aktuelle Warteschlange</h1>
+
+		<table>
+			<thead>
+				<tr>
+					<th>Jahr</th>
+					<th>Ordner</th>
+					<th>Status</th>
+					<th>Statusdetails</th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php
+				$found = false;
+				$queuePath = __DIR__ . "/../queue";
+				$dir = scandir($queuePath);
+				foreach ($dir as $file)
 				{
-					echo "<li><a href='?year=" . $item . "'>" . $item . "</a></li>";
+					if ($file[0] != "." and is_file($queuePath . "/" . $file))
+					{
+						$queueData = json_decode(file_get_contents($queuePath . "/" . $file));
+
+						if ($queueData == null)
+						{
+							continue;
+						}
+
+						$statusData = $queueData->status;
+
+						$statusDetails = $statusData->data;
+
+						switch ($statusData->status)
+						{
+							case QueueItem::STATUS_ERROR:
+								$status = "Fehler";
+								break;
+							case QueueItem::STATUS_PREPARING:
+								$status = "Vorbereiten";
+								break;
+							case QueueItem::STATUS_CLEANUP:
+								$status = "Aufr&auml;umen";
+								break;
+							case QueueItem::STATUS_RESIZING_IMAGES:
+								$status = "Bilder verkleinern";
+								break;
+							case QueueItem::STATUS_UPLOADING:
+								$status = "Hochladen";
+								$statusDetails = "Noch " . $statusDetails->toCheck . " von " . $statusDetails->total;
+								break;
+							case QueueItem::STATUS_UPDATING_DATABASE:
+								$status = "Datenbank aktualisieren";
+								break;
+							case QueueItem::STATUS_WRITING_ALBUM_INFO:
+								$status = "Albuminformationen schreiben";
+								break;
+							default:
+								$status = $statusData->status;
+						}
+
+
+						echo "
+							<tr>
+								<td>" . $queueData->year . "</td>
+								<td>" . $queueData->folder . "</td>
+								<td>" . $status . "</td>
+								<td>" . $statusDetails . "</td>
+							</tr>
+						";
+
+						$found = true;
+					}
 				}
-			}
-			?>
-		</ul>
-		<?php
-	}
-	?>
+
+				if (!$found)
+				{
+					echo "
+						<tr>
+							<td colspan='4'>Keine Eintr&auml;ge vorhanden!</td>
+						</tr>
+					";
+				}
+				?>
+			</tbody>
+		</table>
 	</body>
 </html>
