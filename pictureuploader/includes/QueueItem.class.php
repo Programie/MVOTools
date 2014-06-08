@@ -78,6 +78,8 @@ class QueueItem
 
 		// Build the album.xml
 		$albumInfoDocument = new DOMDocument();
+		$albumInfoDocument->formatOutput = true;
+
 		$rootNode = $albumInfoDocument->createElement("album");
 		$albumInfoDocument->appendChild($rootNode);
 
