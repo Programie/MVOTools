@@ -91,6 +91,8 @@ class QueueItem
 		{
 			if ($file[0] != "." and is_file($sourcePath . "/" . $file) and strtolower(pathinfo($file, PATHINFO_EXTENSION)) == "jpg")
 			{
+				$this->setStatus(QueueItem::STATUS_RESIZING_IMAGES, $imageNumber);
+
 				$name = md5_file($sourcePath . "/" . $file);
 
 				$largeFile = "large_" . $name . ".jpg";
@@ -124,8 +126,6 @@ class QueueItem
 
 				$validFiles[] = $largeFile;
 				$validFiles[] = $smallFile;
-
-				$this->setStatus(QueueItem::STATUS_RESIZING_IMAGES, $imageNumber);
 
 				$imageNumber++;
 			}
