@@ -76,8 +76,8 @@ class QueueItem
 
 		// Build the album.json
 		$albumInfoData = new StdClass;
-		$albumInfoData->id = $albumId;
-		$albumInfoData->year = $year;
+		$albumInfoData->id = (int) $albumId;
+		$albumInfoData->year = (int) $year;
 		$albumInfoData->folderName = $folderName;
 
 		$picturesInfoData = array();
@@ -230,7 +230,7 @@ class QueueItem
 
 		$this->setStatus(QueueItem::STATUS_WRITING_ALBUM_INFO);
 
-		$albumInfoData->id = $albumId;
+		$albumInfoData->id = (int) $albumId;
 
 		file_put_contents($albumInfoFile, json_encode($albumInfoData, JSON_PRETTY_PRINT));
 
