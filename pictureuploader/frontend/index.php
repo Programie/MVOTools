@@ -114,36 +114,59 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 			</ul>
 			<?php
 		}
-		?>
 
-		<h1>Aktuelle Warteschlange</h1>
+		$queueFiles = array();
 
-		<table>
-			<thead>
-				<tr>
-					<th>Jahr</th>
-					<th>Ordner</th>
-					<th>Status</th>
-					<th>Statusdetails</th>
-				</tr>
-			</thead>
-			<tbody>
-				<?php
-				$found = false;
-				$queuePath = __DIR__ . "/../queue";
-				$dir = scandir($queuePath);
-				foreach ($dir as $file)
+		$queuePath = __DIR__ . "/../queue";
+
+		$dir = scandir($queuePath);
+		foreach ($dir as $file)
+		{
+			if ($file[0] != "." and is_file($queuePath . "/" . $file) and pathinfo($file, PATHINFO_EXTENSION) != "disabled")
+			{
+				$fileData = new StdClass;
+				$fileData->name = $file;
+				$fileData->time = filemtime($queuePath . "/" . $file);
+				$fileData->data = json_decode(file_get_contents($queuePath . "/" . $file));
+
+				if ($fileData->data == null)
 				{
-					if ($file[0] != "." and is_file($queuePath . "/" . $file))
+					continue;
+				}
+
+				$queueFiles[] = $fileData;
+			}
+		}
+
+		usort($queueFiles, function($item1, $item2)
+		{
+			if ($item1->time == $item2->time)
+			{
+				return 0;
+			}
+
+			return $item1->time < $item2->time ? 1 : -1;
+		});
+
+		if (!empty($queueFiles))
+		{
+		?>
+			<h1>Aktuelle Warteschlange</h1>
+
+			<table>
+				<thead>
+					<tr>
+						<th>Jahr</th>
+						<th>Ordner</th>
+						<th>Status</th>
+						<th>Letzte &Auml;nderung</th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php
+					foreach ($queueFiles as $file)
 					{
-						$queueData = json_decode(file_get_contents($queuePath . "/" . $file));
-
-						if ($queueData == null)
-						{
-							continue;
-						}
-
-						$statusData = $queueData->status;
+						$statusData = $file->data->status;
 
 						$statusDetails = $statusData->data;
 
@@ -153,7 +176,7 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 								$status = "Neu";
 								break;
 							case QueueItem::STATUS_ERROR:
-								$status = "Fehler";
+								$status = "Fehler: " . $statusDetails;
 								break;
 							case QueueItem::STATUS_PREPARING:
 								$status = "Vorbereiten";
@@ -162,12 +185,10 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 								$status = "Aufr&auml;umen";
 								break;
 							case QueueItem::STATUS_RESIZING_IMAGES:
-								$status = "Bilder verkleinern";
-								$statusDetails = $statusDetails->current . " / " . $statusDetails->total;
+								$status = "Bilder verkleinern (" . $statusDetails->current . " / " . $statusDetails->total . ")";
 								break;
 							case QueueItem::STATUS_UPLOADING:
-								$status = "Hochladen";
-								$statusDetails = ($statusDetails->totalCheck - $statusDetails->toCheck) . " / " . $statusDetails->totalCheck;
+								$status = "Hochladen (" . ($statusDetails->totalCheck - $statusDetails->toCheck) . " / " . $statusDetails->totalCheck . ")";
 								break;
 							case QueueItem::STATUS_UPDATING_DATABASE:
 								$status = "Datenbank aktualisieren";
@@ -181,27 +202,18 @@ require_once __DIR__ . "/../includes/QueueItem.class.php";
 
 						echo "
 							<tr>
-								<td>" . $queueData->year . "</td>
-								<td>" . $queueData->folder . "</td>
+								<td>" . $file->data->year . "</td>
+								<td>" . $file->data->folder . "</td>
 								<td>" . $status . "</td>
-								<td>" . $statusDetails . "</td>
+								<td>" . date("d.m.Y H:i:s", $file->time) . "</td>
 							</tr>
 						";
-
-						$found = true;
 					}
-				}
-
-				if (!$found)
-				{
-					echo "
-						<tr>
-							<td colspan='4'>Keine Eintr&auml;ge vorhanden!</td>
-						</tr>
-					";
-				}
-				?>
-			</tbody>
-		</table>
+					?>
+				</tbody>
+			</table>
+		<?php
+		}
+		?>
 	</body>
 </html>
