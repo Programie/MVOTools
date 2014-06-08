@@ -221,7 +221,7 @@ class QueueItem
 			return false;
 		}
 
-		$outputStream = ssh2_exec($sshConnection, "sudo php" . $this->remoteWebsiteRoot . "/addAlbum.php " . $albumFolderName);
+		$outputStream = ssh2_exec($sshConnection, "sudo php " . $this->remoteWebsiteRoot . "/addAlbum.php " . $albumFolderName);
 
 		stream_set_blocking($outputStream, true);
 
@@ -229,7 +229,10 @@ class QueueItem
 
 		if (!$albumId or !is_numeric($albumId))
 		{
-			$this->setStatus(QueueItem::STATUS_ERROR, "Error while execution of addAlbum.php on " . $this->sshServer->server . ":\n" . $albumId);
+			$content = "Output: " . $albumId . "\n";
+			$content .= "Error: " . stream_get_contents(ssh2_fetch_stream($outputStream , SSH2_STREAM_STDERR));
+
+			$this->setStatus(QueueItem::STATUS_ERROR, "Error while execution of addAlbum.php on " . $this->sshServer->server . ":\n" . $content);
 			return false;
 		}
 
