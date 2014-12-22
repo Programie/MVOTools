@@ -177,7 +177,7 @@ class QueueItem
 			"--delete",
 			"--progress",
 			"--log-file=" . $this->rsyncLogFile,
-			"--rsync-path=\"sudo mkdir -p " . $remotePath . " && sudo rsync\"",
+			"--rsync-path=\"mkdir -p " . $remotePath . " && rsync\"",
 			"-e \"ssh -i " . $this->sshServer->privateKeyFile . "\"",
 			"\"" . $albumPath . "/\"",
 			$this->sshServer->username . "@" . $this->sshServer->server . ":" . $remotePath . "/"
@@ -221,7 +221,7 @@ class QueueItem
 			return false;
 		}
 
-		$outputStream = ssh2_exec($sshConnection, "sudo php " . $this->remoteWebsiteRoot . "/tools/addAlbum.php " . $albumFolderName);
+		$outputStream = ssh2_exec($sshConnection, "php " . $this->remoteWebsiteRoot . "/tools/addAlbum.php " . $albumFolderName);
 
 		stream_set_blocking($outputStream, true);
 
