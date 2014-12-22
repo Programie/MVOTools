@@ -221,7 +221,7 @@ class QueueItem
 			return false;
 		}
 
-		$outputStream = ssh2_exec($sshConnection, "sudo php " . $this->remoteWebsiteRoot . "/addAlbum.php " . $albumFolderName);
+		$outputStream = ssh2_exec($sshConnection, "sudo php " . $this->remoteWebsiteRoot . "/tools/addAlbum.php " . $albumFolderName);
 
 		stream_set_blocking($outputStream, true);
 
