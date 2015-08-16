@@ -43,9 +43,14 @@ $(function()
 		{
 			endpoint : "years/" + year + "/albums/" + album,
 			method : "PUT",
-			callback : function()
+			callback : function(data, success)
 			{
 				loadAlbums(year);
+
+				if (success)
+				{
+					notify("success", "Album zur Warteschlange hinzugef\u00fcgt", "Das Album wird nun hochgeladen.");
+				}
 
 				$("#upload-confirm-modal").modal("hide");
 			}
@@ -151,5 +156,37 @@ function loadData(options)
 			}
 		},
 		url : "index.php/" + options.endpoint
+	});
+}
+
+function notify(type, title, message)
+{
+	var icon;
+
+	switch (type)
+	{
+		case "success":
+			icon = "ok-sign";
+			break;
+		case "info":
+			icon = "info-sign";
+			break;
+		case "warning":
+			icon = "warning-sign";
+			break;
+		case "danger":
+			icon = "remove-sign";
+			break;
+	}
+
+	$.notify(
+	{
+		icon: "glyphicon glyphicon-" + icon,
+		title : " <strong>" + title + "</strong><br/>",
+		message : message
+	},
+	{
+		type : type,
+		z_index : 10000
 	});
 }

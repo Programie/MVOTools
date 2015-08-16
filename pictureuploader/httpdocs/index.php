@@ -51,6 +51,8 @@ if (isset($_SERVER["PATH_INFO"]))
 		<script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
 		<script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 
+		<script type="text/javascript" src="bower_components/remarkable-bootstrap-notify/bootstrap-notify.min.js"></script>
+
 		<script type="text/javascript" src="bower_components/mustache/mustache.min.js"></script>
 
 		<script type="text/javascript" src="js/main.js"></script>
