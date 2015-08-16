@@ -2,6 +2,7 @@
 namespace com\selfcoders\mvotools\pictureuploader\queue;
 
 use com\selfcoders\mvotools\pictureuploader\image\Resizer;
+use com\selfcoders\mvotools\pictureuploader\Logger;
 use com\selfcoders\mvotools\pictureuploader\object\Album;
 use com\selfcoders\mvotools\pictureuploader\object\State;
 
@@ -11,10 +12,6 @@ class Item
 	 * @var Album
 	 */
 	private $album;
-	/**
-	 * @var string
-	 */
-	private $queueFile;
 
 	public function __construct($year, $album)
 	{
@@ -22,8 +19,6 @@ class Item
 
 		$this->album->year = (int) $year;
 		$this->album->album = basename($album);
-
-		$this->queueFile = QUEUE_PATH . "/" . $this->album->year . "/" . $this->album->album . ".json";
 	}
 
 	private function setState($state, $current = null, $total = null)
@@ -33,6 +28,7 @@ class Item
 
 	private function setErrorState($content)
 	{
+		Logger::log("Error: " . $content);
 		State::saveError($this->album->year, $this->album->album, $content);
 	}
 
@@ -71,7 +67,10 @@ class Item
 
 	public function process()
 	{
+		$picturesPath = $this->album->getPicturesPath();
 		$dataPath = $this->album->getDataPath();
+
+		Logger::log("Processing album: " . $picturesPath);
 
 		if (!is_dir($dataPath))
 		{
@@ -82,11 +81,11 @@ class Item
 
 		$pictures = $this->getPictures();
 
-		$picturesPath = $this->album->getPicturesPath();
-
 		$validFiles = array("album.json");
 
 		$this->album->pictures = array();
+
+		Logger::log("Preparing " . count($pictures) . " pictures");
 
 		foreach ($pictures as $index => $file)
 		{
@@ -104,11 +103,13 @@ class Item
 
 			if (!file_exists($largFilePath))
 			{
+				Logger::log("Saving large version of " . $file);
 				imagejpeg($resizer->resize(1500, 1000), $largFilePath);
 			}
 
 			if (!file_exists($smallFilePath))
 			{
+				Logger::log("Saving small version of " . $file);
 				imagejpeg($resizer->resize(600, 200), $smallFilePath);
 			}
 
@@ -134,6 +135,8 @@ class Item
 				continue;
 			}
 
+			Logger::log("Removing old file from workspace: " . $file);
+
 			unlink($dataPath . "/" . $file);
 		}
 
@@ -150,6 +153,8 @@ class Item
 
 		$remotePath = REMOTE_WEBSITE_ROOT . "/files/pictures/" . $albumFolder;
 
+		Logger::log("Uploading to path: " . $remotePath);
+
 		$returnCode = -1;
 
 		$rsyncCommand = array
@@ -162,12 +167,14 @@ class Item
 			"--log-file=%s",
 			"--rsync-path=\"mkdir -p %s && rsync\"",
 			"-e \"ssh -i %s\"",
-			"%s/ %s/"
+			"\"%s/\" %s/"
 		);
 
 		$target = sprintf("%s@%s:%s", SSH_USERNAME, SSH_SERVER, $remotePath);
 
 		$rsyncCommand = sprintf(implode(" ", $rsyncCommand), RSYNC_LOG_FILE, $remotePath, SSH_PRIVATE_KEY, $dataPath, $target);
+
+		Logger::log("Executing command: " . $rsyncCommand);
 
 		$rsyncProcess = popen($rsyncCommand, "r");
 		if ($rsyncProcess)
@@ -190,9 +197,12 @@ class Item
 		if ($returnCode)
 		{
 			$this->setErrorState("Rsync error");
+			return;
 		}
 
 		$this->setState(State::STATE_UPDATE_DATABASE);
+
+		Logger::log("Updating database");
 
 		$sshConnection = ssh2_connect(SSH_SERVER);
 		if (!ssh2_auth_pubkey_file($sshConnection, SSH_USERNAME, SSH_PUBLIC_KEY, SSH_PRIVATE_KEY))
@@ -218,6 +228,15 @@ class Item
 
 		$this->album->id = (int) $response;
 
+		Logger::log("Got album ID: " . $this->album->id);
+
 		$this->album->save();
+	}
+
+	public function removeQueueFile()
+	{
+		Logger::log("Removing queue item");
+
+		unlink(QUEUE_PATH . "/" . $this->album->year . "/" . $this->album->album . ".json");
 	}
 }

@@ -51,6 +51,8 @@ class Queue
 		$item = $this->queue[0];
 
 		$item->process();
+
+		$item->removeQueueFile();
 	}
 
 	public function process()
