@@ -9,37 +9,19 @@ class Queue
 	{
 		$this->queue = array();
 
-		foreach (scandir(QUEUE_PATH) as $year)
+		foreach (scandir(QUEUE_PATH) as $file)
 		{
-			if (!is_dir(QUEUE_PATH . "/" . $year))
+			if ($file[0] == ".")
 			{
 				continue;
 			}
 
-			if ($year[0] == ".")
+			if (!is_file(QUEUE_PATH . "/" . $file))
 			{
 				continue;
 			}
 
-			if (!is_numeric($year))
-			{
-				continue;
-			}
-
-			foreach (scandir(QUEUE_PATH . "/" . $year) as $album)
-			{
-				if (!is_file(QUEUE_PATH . "/" . $year . "/" . $album))
-				{
-					continue;
-				}
-
-				if ($album[0] == ".")
-				{
-					continue;
-				}
-
-				$this->queue[] = new Item($year, pathinfo($album, PATHINFO_FILENAME));
-			}
+			$this->queue[] = new Item($file);
 		}
 	}
 

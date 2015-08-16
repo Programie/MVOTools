@@ -85,7 +85,7 @@ class Pictures
 			return null;
 		}
 
-		$file = QUEUE_PATH . "/" . $year . "/" . $album . ".json";
+		$file = State::getPath($year, $album);
 
 		if (file_exists($file))
 		{

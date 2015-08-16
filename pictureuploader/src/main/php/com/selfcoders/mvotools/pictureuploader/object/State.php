@@ -15,16 +15,14 @@ class State
 	public $current;
 	public $total;
 
+	public static function getPath($year, $album)
+	{
+		return QUEUE_PATH . "/" . $year . "_" . $album . ".json";
+	}
+
 	public function load(Album $album)
 	{
-		$path = QUEUE_PATH . "/" . $album->year;
-
-		if (!is_dir($path))
-		{
-			return false;
-		}
-
-		$file = $path . "/" . $album->album . ".json";
+		$file = self::getPath($album->year, $album->album);
 
 		if (!file_exists($file))
 		{
@@ -47,15 +45,10 @@ class State
 
 	public static function save($year, $album, $state, $current = null, $total = null)
 	{
-		$path = QUEUE_PATH . "/" . $year;
-
-		if (!is_dir($path))
-		{
-			mkdir($path, 0775);
-		}
-
-		file_put_contents($path . "/" . $album . ".json", json_encode(array
+		file_put_contents(self::getPath($year, $album), json_encode(array
 		(
+			"year" => $year,
+			"album" => $album,
 			"state" => $state,
 			"current" => (int) $current,
 			"total" => (int) $total
@@ -64,15 +57,10 @@ class State
 
 	public static function saveError($year, $album, $content)
 	{
-		$path = QUEUE_PATH . "/" . $year;
-
-		if (!is_dir($path))
-		{
-			mkdir($path, 0775);
-		}
-
-		file_put_contents($path . "/" . $album . ".json", json_encode(array
+		file_put_contents(self::getPath($year, $album), json_encode(array
 		(
+			"year" => $year,
+			"album" => $album,
 			"state" => self::STATE_ERROR,
 			"content" => $content
 		)));

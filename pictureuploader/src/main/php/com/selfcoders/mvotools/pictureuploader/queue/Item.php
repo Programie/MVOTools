@@ -13,12 +13,14 @@ class Item
 	 */
 	private $album;
 
-	public function __construct($year, $album)
+	public function __construct($file)
 	{
+		$data = json_decode(file_get_contents(QUEUE_PATH . "/" . $file));
+
 		$this->album = new Album;
 
-		$this->album->year = (int) $year;
-		$this->album->album = basename($album);
+		$this->album->year = (int) $data->year;
+		$this->album->album = basename($data->album);
 	}
 
 	private function setState($state, $current = null, $total = null)
@@ -241,6 +243,6 @@ class Item
 	{
 		Logger::log("Removing queue item");
 
-		unlink(QUEUE_PATH . "/" . $this->album->year . "/" . $this->album->album . ".json");
+		unlink(State::getPath($this->album->year, $this->album->album));
 	}
 }
