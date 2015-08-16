@@ -211,7 +211,11 @@ class Item
 			return;
 		}
 
-		$outputStream = ssh2_exec($sshConnection, "php " . REMOTE_WEBSITE_ROOT . "/tools/addAlbum.php " . $albumFolder);
+		$command = "php " . REMOTE_WEBSITE_ROOT . "/tools/addAlbum.php " . $albumFolder;
+
+		Logger::log("Executing on " . SSH_SERVER . ": " . $command);
+
+		$outputStream = ssh2_exec($sshConnection, $command);
 
 		stream_set_blocking($outputStream, true);
 
@@ -222,7 +226,7 @@ class Item
 			$content = "Output: " . $response . "\n";
 			$content .= "Error: " . stream_get_contents(ssh2_fetch_stream($outputStream , SSH2_STREAM_STDERR));
 
-			$this->setErrorState("Error while execution of addAlbum.php on " . SSH_SERVER . ":\n" . $content);
+			$this->setErrorState("Error while execution:\n" . $content);
 			return;
 		}
 
