@@ -11,7 +11,7 @@ class Queue
 
 		foreach (scandir(QUEUE_PATH) as $year)
 		{
-			if (!is_dir($year))
+			if (!is_dir(QUEUE_PATH . "/" . $year))
 			{
 				continue;
 			}
@@ -28,7 +28,7 @@ class Queue
 
 			foreach (scandir(QUEUE_PATH . "/" . $year) as $album)
 			{
-				if (!is_file($album))
+				if (!is_file(QUEUE_PATH . "/" . $year . "/" . $album))
 				{
 					continue;
 				}
