@@ -91,6 +91,8 @@ function loadAlbums(year)
 			{
 				var album = data[index];
 
+				var progress = album.state.current + " von " + album.state.total;
+
 				switch (album.state.state)
 				{
 					case null:
@@ -103,7 +105,7 @@ function loadAlbums(year)
 						break;
 					case "resize":
 						album.state.class = "info";
-						album.state.title = "Bilder verkleinern";
+						album.state.title = "Bilder verkleinern (" + progress + ")";
 						break;
 					case "cleanup":
 						album.state.class = "info";
@@ -111,7 +113,7 @@ function loadAlbums(year)
 						break;
 					case "upload":
 						album.state.class = "info";
-						album.state.title = "Hochladen";
+						album.state.title = "Hochladen (" + progress + ")";
 						break;
 					case "update_database":
 						album.state.class = "info";
