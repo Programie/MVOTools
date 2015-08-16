@@ -1,11 +1,24 @@
 <?php
-class ImageResizer
+namespace com\selfcoders\mvotools\pictureuploader\image;
+
+class Resizer
 {
+	private $originalFilename;
 	private $originalImage;
 	private $originalWidth;
 	private $originalHeight;
 
-	public function __construct($image)
+	public function __construct($filename)
+	{
+		$this->originalFilename = $filename;
+	}
+
+	public function loadFile($filename)
+	{
+		$this->loadImage(imagecreatefromjpeg($filename));
+	}
+
+	public function loadImage($image)
 	{
 		$this->originalImage = $image;
 
@@ -15,6 +28,11 @@ class ImageResizer
 
 	public function resize($newWidth, $newHeight)
 	{
+		if ($this->originalImage === null)
+		{
+			$this->loadFile($this->originalFilename);
+		}
+
 		$newSize = $this->getSize($newWidth, $newHeight);
 
 		$resizedImage = imagecreatetruecolor($newSize->width, $newSize->height);
@@ -35,7 +53,7 @@ class ImageResizer
 
 	private function getSize($newWidth, $newHeight)
 	{
-		$size = new StdClass;
+		$size = new Size;
 
 		if ($this->originalHeight < $this->originalWidth)
 		{
