@@ -1,0 +1,21 @@
+{
+  "name": "httpdocs",
+  "version": "0.0.0",
+  "homepage": "https://github.com/Programie/MVOTools",
+  "authors": [
+    "Programie <github@selfcoders.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.3.5",
+    "jquery": "~2.1.4",
+    "mustache": "~2.1.3"
+  }
+}

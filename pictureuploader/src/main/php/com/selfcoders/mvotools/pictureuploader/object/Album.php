@@ -54,6 +54,8 @@ class Album
 			return false;
 		}
 
+		$this->state->state = State::STATE_DONE;
+
 		$this->id = (int) $data->id;
 		$this->pictures = $data->pictures;
 

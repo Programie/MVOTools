@@ -3,15 +3,15 @@ namespace com\selfcoders\mvotools\pictureuploader\object;
 
 class State
 {
-	const STATE_NONE = "none";
 	const STATE_QUEUED = "queued";
 	const STATE_RESIZE = "resize";
 	const STATE_CLEANUP = "cleanup";
 	const STATE_UPLOAD = "upload";
 	const STATE_UPDATE_DATABASE = "update_database";
+	const STATE_DONE = "done";
 	const STATE_ERROR = "error";
 
-	public $state = self::STATE_NONE;
+	public $state;
 	public $current;
 	public $total;
 
