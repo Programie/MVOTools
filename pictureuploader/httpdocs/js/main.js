@@ -10,56 +10,123 @@ $(function()
 				return;
 			}
 
+			data.sort(function(item1, item2)
+			{
+				return item2 - item1;
+			});
+
 			$("#years").html(Mustache.render($("#years-template").html(), data));
 		}
 	});
 
-	$("#years").on("show.bs.collapse", ".panel", function()
+	var yearsContainer = $("#years");
+
+	yearsContainer.on("show.bs.collapse", ".panel", function()
 	{
-		var listGroup = $(this).find(".list-group");
+		loadAlbums($(this).data("year"));
+	});
+
+	yearsContainer.on("click", ".upload-button", function()
+	{
+		$("#upload-confirm-year").text($(this).closest(".panel").data("year"));
+		$("#upload-confirm-album").text($(this).closest("tr").data("album"));
+
+		$("#upload-confirm-modal").modal("show");
+	});
+
+	$("#upload-confirm-button").on("click", function()
+	{
+		var year = $("#upload-confirm-year").text();
+		var album = $("#upload-confirm-album").text();
 
 		loadData(
 		{
-			endpoint : "years/" + $(this).data("year") + "/albums",
-			callback : function(data, success)
+			endpoint : "years/" + year + "/albums/" + album,
+			method : "PUT",
+			callback : function()
 			{
-				if (!success)
-				{
-					return;
-				}
+				loadAlbums(year);
 
-				for (var index = 0; index < data.length; index++)
-				{
-					var album = data[index];
-
-					switch (album.state.state)
-					{
-						case null:
-							album.state.class = "default";
-							break;
-						case "queued":
-							album.state.class = "warning";
-							break;
-						case "resize":
-						case "cleanup":
-						case "upload":
-						case "update_database":
-							album.state.class = "info";
-							break;
-						case "done":
-							album.state.class = "success";
-							break;
-						case "error":
-							album.state.class = "danger";
-							break;
-					}
-				}
-
-				listGroup.html(Mustache.render($("#albums-template").html(), data));
+				$("#upload-confirm-modal").modal("hide");
 			}
 		});
 	});
 });
+
+function loadAlbums(year)
+{
+	var container = $("#year-" + year).find("tbody");
+
+	loadData(
+	{
+		endpoint : "years/" + year + "/albums",
+		callback : function(data, success)
+		{
+			if (!success)
+			{
+				return;
+			}
+
+			data.sort(function(item1, item2)
+			{
+				if (item1.album < item2.album)
+				{
+					return 1;
+				}
+
+				if (item1.album > item2.album)
+				{
+					return -1;
+				}
+
+				return 0;
+			});
+
+			for (var index = 0; index < data.length; index++)
+			{
+				var album = data[index];
+
+				switch (album.state.state)
+				{
+					case null:
+						album.state.class = "default";
+						album.state.title = "Neu";
+						break;
+					case "queued":
+						album.state.class = "warning";
+						album.state.title = "In der Warteschlange";
+						break;
+					case "resize":
+						album.state.class = "info";
+						album.state.title = "Bilder verkleinern";
+						break;
+					case "cleanup":
+						album.state.class = "info";
+						album.state.title = "Aufr\u0034umen";
+						break;
+					case "upload":
+						album.state.class = "info";
+						album.state.title = "Hochladen";
+						break;
+					case "update_database":
+						album.state.class = "info";
+						album.state.title = "Datenbank aktualisieren";
+						break;
+					case "done":
+						album.state.class = "success";
+						album.state.title = "Fertig";
+						break;
+					case "error":
+						album.state.class = "danger";
+						album.state.title = "Fehler";
+						break;
+				}
+			}
+
+			container.html(Mustache.render($("#albums-template").html(), data));
+		}
+	});
+}
 
 function loadData(options)
 {
