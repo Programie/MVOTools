@@ -189,9 +189,10 @@ class QueueItem
 			{
 				$line = fgets($rsyncProcess);
 
+				echo $line;
 				// Parse the following line:
-				// 57699 100%   63.03kB/s    0:00:00 (xfer#747, to-check=1203/2213)
-				if (preg_match("/([0-9]+)%\s+([0-9\.]+)kB\/s\s+[0-9:]+\s+\(xfer#([0-9]+),\s+to-check=([0-9]+)\/([0-9]+)\)/", $line, $matches))
+				// 741 100%    6.08kB/s    0:00:00 (xfr#1580, to-chk=2/1763)
+				if (preg_match("/([0-9]+)%\s+([0-9\.]+)kB\/s\s+[0-9:]+\s+\(xfr#([0-9]+),\s+to-chk=([0-9]+)\/([0-9]+)\)/", $line, $matches))
 				{
 					$rsyncData = new StdClass;
 					$rsyncData->percent = $matches[1];

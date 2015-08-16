@@ -9,7 +9,7 @@ class QueueProcessor
 	private $rsyncLogFile;
 	private $albumsPath;
 	private $queuePath;
-	private $maxLoopCount = 50;
+	private $maxLoopCount = 150;
 
 	public function setSshServer(SshServer $server)
 	{
@@ -80,7 +80,7 @@ class QueueProcessor
 	{
 		$loopCount = 0;
 
-		while (($queueFile = $this->getNextFile()) != null and $loopCount < $this->maxLoopCount)
+		while (($queueFile = $this->getNextFile()) != null)
 		{
 			$queueFile = $this->queuePath . "/" . $queueFile;
 
@@ -96,6 +96,12 @@ class QueueProcessor
 			}
 
 			$loopCount++;
+
+			if ($loopCount >= $this->maxLoopCount)
+			{
+				sleep(300);
+				$loopCount = 0;
+			}
 		}
 	}
 }
