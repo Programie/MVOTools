@@ -76,6 +76,8 @@ class Album
 		file_put_contents($dataPath . "/album.json", json_encode(array
 		(
 			"id" => (int) $this->id,
+			"year" => (int) $this->year,
+			"album" => $this->album,
 			"pictures" => $this->pictures
 		)));
 	}
