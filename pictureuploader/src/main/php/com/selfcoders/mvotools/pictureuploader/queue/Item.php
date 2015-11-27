@@ -189,7 +189,10 @@ class Item
 				// 741 100%    6.08kB/s    0:00:00 (xfr#1580, to-chk=2/1763)
 				if (preg_match("/to-chk=([0-9]+)\/([0-9]+)\)/", $line, $matches))
 				{
-					$this->setState(State::STATE_UPLOAD, (int) $matches[1], (int) $matches[2]);
+					$total = (int) $matches[2];
+					$remaining = (int) $matches[1];
+
+					$this->setState(State::STATE_UPLOAD, $total - $remaining, $total);
 				}
 			}
 
