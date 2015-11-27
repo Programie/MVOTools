@@ -3,6 +3,7 @@ namespace com\selfcoders\mvotools\pictureuploader\service;
 
 use com\selfcoders\mvotools\pictureuploader\object\Album;
 use com\selfcoders\mvotools\pictureuploader\object\State;
+use com\selfcoders\mvotools\pictureuploader\queue\Item;
 
 class Pictures
 {
@@ -85,7 +86,7 @@ class Pictures
 			return null;
 		}
 
-		$file = State::getPath($year, $album);
+		$file = Item::getPath($year, $album);
 
 		if (file_exists($file))
 		{
@@ -94,5 +95,6 @@ class Pictures
 		}
 
 		State::save($year, $album, State::STATE_QUEUED);
+		Item::create($year, $album);
 	}
 }

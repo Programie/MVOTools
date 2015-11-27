@@ -23,6 +23,20 @@ class Item
 		$this->album->album = basename($data->album);
 	}
 
+	public static function getPath($year, $album)
+	{
+		return QUEUE_PATH . "/" . $year . "_" . $album . ".json";
+	}
+
+	public static function create($year, $album)
+	{
+		file_put_contents(self::getPath($year, $album), json_encode(array
+		(
+			"year" => $year,
+			"album" => basename($album)
+		)));
+	}
+
 	private function setState($state, $current = null, $total = null)
 	{
 		State::save($this->album->year, $this->album->album, $state, $current, $total);
@@ -70,7 +84,7 @@ class Item
 	public function process()
 	{
 		$picturesPath = $this->album->getPicturesPath();
-		$dataPath = $this->album->getDataPath();
+		$dataPath = $picturesPath . "/" . DATA_FOLDER;
 
 		Logger::log("Processing album: " . $picturesPath);
 
@@ -168,6 +182,7 @@ class Item
 			"--progress",
 			"--log-file=%s",
 			"--rsync-path=\"mkdir -p %s && rsync\"",
+			"--exclude state.json",
 			"-e \"ssh -i %s\"",
 			"\"%s/\" %s/"
 		);
@@ -202,7 +217,7 @@ class Item
 		if ($returnCode)
 		{
 			$this->setErrorState("Rsync error");
-			return;
+			return false;
 		}
 
 		$this->setState(State::STATE_UPDATE_DATABASE);
@@ -213,7 +228,7 @@ class Item
 		if (!ssh2_auth_pubkey_file($sshConnection, SSH_USERNAME, SSH_PUBLIC_KEY, SSH_PRIVATE_KEY))
 		{
 			$this->setErrorState("SSH authentication failed!");
-			return;
+			return false;
 		}
 
 		$command = "php " . REMOTE_WEBSITE_ROOT . "/tools/addAlbum.php " . $albumFolder;
@@ -232,7 +247,7 @@ class Item
 			$content .= "Error: " . stream_get_contents(ssh2_fetch_stream($outputStream , SSH2_STREAM_STDERR));
 
 			$this->setErrorState("Error while execution:\n" . $content);
-			return;
+			return false;
 		}
 
 		$this->album->id = (int) $response;
@@ -240,12 +255,16 @@ class Item
 		Logger::log("Got album ID: " . $this->album->id);
 
 		$this->album->save();
+
+		$this->setState(State::STATE_DONE);
+
+		return true;
 	}
 
 	public function removeQueueFile()
 	{
 		Logger::log("Removing queue item");
 
-		unlink(State::getPath($this->album->year, $this->album->album));
+		unlink(self::getPath($this->album->year, $this->album->album));
 	}
 }

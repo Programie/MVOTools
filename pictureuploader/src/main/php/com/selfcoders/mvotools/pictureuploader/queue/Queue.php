@@ -32,7 +32,10 @@ class Queue
 		 */
 		$item = $this->queue[0];
 
-		$item->process();
+		if (!$item->process())
+		{
+			return;
+		}
 
 		$item->removeQueueFile();
 	}

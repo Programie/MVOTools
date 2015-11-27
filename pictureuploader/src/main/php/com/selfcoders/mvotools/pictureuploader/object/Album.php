@@ -24,21 +24,31 @@ class Album
 	 */
 	public $pictures;
 
+	public static function getPath($year, $album)
+	{
+		return PICTURES_PATH . "/" . $year . "/" . $album;
+	}
+
+	public static function createDataFolder($year, $album)
+	{
+		$path = self::getPath($year, $album) . "/" . DATA_FOLDER;
+
+		if (!is_dir($path))
+		{
+			mkdir($path, 0755, true);
+		}
+	}
+
 	public function getPicturesPath()
 	{
 		return PICTURES_PATH . "/" . $this->year . "/" . $this->album;
-	}
-
-	public function getDataPath()
-	{
-		return $this->getPicturesPath() . "/" . DATA_FOLDER;
 	}
 
 	public function load()
 	{
 		$this->state = new State;
 
-		$dataPath = $this->getDataPath();
+		$dataPath = $this->getPicturesPath() . "/" . DATA_FOLDER;
 
 		$file = $dataPath . "/album.json";
 
@@ -54,8 +64,6 @@ class Album
 			return false;
 		}
 
-		$this->state->state = State::STATE_DONE;
-
 		$this->id = (int) $data->id;
 		$this->pictures = $data->pictures;
 
@@ -66,7 +74,7 @@ class Album
 
 	public function save()
 	{
-		$dataPath = $this->getDataPath();
+		$dataPath = $this->getPicturesPath() . "/" . DATA_FOLDER;
 
 		if (!is_dir($dataPath))
 		{

@@ -17,7 +17,7 @@ class State
 
 	public static function getPath($year, $album)
 	{
-		return QUEUE_PATH . "/" . $year . "_" . $album . ".json";
+		return Album::getPath($year, $album) . "/" . DATA_FOLDER . "/state.json";
 	}
 
 	public function load(Album $album)
@@ -45,6 +45,8 @@ class State
 
 	public static function save($year, $album, $state, $current = null, $total = null)
 	{
+		Album::createDataFolder($year, $album);
+
 		file_put_contents(self::getPath($year, $album), json_encode(array
 		(
 			"year" => $year,
@@ -57,6 +59,8 @@ class State
 
 	public static function saveError($year, $album, $content)
 	{
+		Album::createDataFolder($year, $album);
+
 		file_put_contents(self::getPath($year, $album), json_encode(array
 		(
 			"year" => $year,
